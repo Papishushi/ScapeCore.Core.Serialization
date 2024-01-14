@@ -9,6 +9,13 @@
   <ItemGroup>
     <PackageReference Include="Baksteen.Extensions.DeepCopy" Version="1.0.3" />
     <PackageReference Include="protobuf-net" Version="3.2.30" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ScapeCore.Core.Tools">
+      <HintPath>ScapeCore.Core.Tools.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
