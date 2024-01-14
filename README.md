@@ -1,0 +1,1 @@
+# ScapeCore.Core.Serialization
