@@ -16,6 +16,7 @@
  * inheriting this class.
  */
 
+using System.IO;
 using System.IO.Compression;
 
 namespace ScapeCore.Core.Serialization.Streamers

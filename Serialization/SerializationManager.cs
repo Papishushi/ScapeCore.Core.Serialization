@@ -19,6 +19,10 @@
 using Baksteen.Extensions.DeepCopy;
 using ProtoBuf.Meta;
 using ScapeCore.Core.Serialization.Streamers;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using static ScapeCore.Core.Serialization.RuntimeModelFactory;
 
