@@ -1,4 +1,4 @@
-# ScapeCore.Core.Serialization
+# ScapeCore.Core.Serialization [![Codacy Badge](https://app.codacy.com/project/badge/Grade/2974e8837cad44cb8ddacf0f36336208)](https://app.codacy.com/gh/Papishushi/ScapeCore.Core.Serialization/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 This set of scripts is the serialization engine used in [ScapeCore](https://github.com/Papishushi/ScapeCore). Can be used in a wide variety of projects.
 
