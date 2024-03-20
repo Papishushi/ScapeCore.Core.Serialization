@@ -18,10 +18,10 @@
  */
 
 using ProtoBuf.Meta;
-using Serilog;
 using System;
 using System.IO;
 
+using static ScapeCore.Traceability.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
@@ -54,7 +54,7 @@ namespace ScapeCore.Core.Serialization.Streamers
                 writer.Write(data, 0, size);
             }
 
-            Log.Verbose("Serialized {l} bytes from {type} into {path}", size, type, path);
+            SCLog.Log(VERBOSE, $"Serialized {size} bytes from {type} into {path}");
 
             output = new() { Type = type, Error = SerializationError.None, Data = data, Size = size, Path = path, Compressed = compress };
             return output;
@@ -75,7 +75,7 @@ namespace ScapeCore.Core.Serialization.Streamers
 
             var size = data.Length;
 
-            Log.Verbose("Serialized {l} bytes from {type}", size, type);
+            SCLog.Log(VERBOSE, $"Serialized {size} bytes from {type}");
 
             output = new() { Type = type, Error = SerializationError.None, Data = data, Size = size, Path = string.Empty, Compressed = compress };
             return output;

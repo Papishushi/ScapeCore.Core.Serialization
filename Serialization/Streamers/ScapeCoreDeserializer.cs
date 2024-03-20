@@ -20,10 +20,11 @@
 using ProtoBuf.Meta;
 using ScapeCore.Core.Batching.Tools;
 using ScapeCore.Core.Serialization.Tools;
-using Serilog;
 using System;
 using System.IO;
 
+using ScapeCore.Traceability.Debug;
+using static ScapeCore.Traceability.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
@@ -54,7 +55,7 @@ namespace ScapeCore.Core.Serialization.Streamers
                 }
             }
 
-            Log.Verbose("Deserialized type {t} from {path}.", type.Name, path);
+            SCLog.Log(VERBOSE, $"Deserialized type {type.Name} from {path}.");
             output = new() { Error = SerializationError.None, Output = new(deserialized), Type = type, Path = path, Decompressed = decompress };
             return output;
         }
@@ -73,7 +74,7 @@ namespace ScapeCore.Core.Serialization.Streamers
                 deserialized = _model!.DeserializeWithLengthPrefix(ms, obj, type, ProtoBuf.PrefixStyle.Base128, 0);
             }
 
-            Log.Verbose("Deserialized type {t}.", type.Name);
+            SCLog.Log(VERBOSE, $"Deserialized type {type.Name}.");
             output = new() { Error = SerializationError.None, Output = new(deserialized), Type = type, Path = string.Empty, Decompressed = decompress };
             return output;
         }

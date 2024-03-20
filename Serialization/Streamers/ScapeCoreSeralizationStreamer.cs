@@ -17,10 +17,10 @@
  */
 
 using ProtoBuf.Meta;
-using Serilog;
 using System;
 using System.IO;
 
+using static ScapeCore.Traceability.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
@@ -30,8 +30,10 @@ namespace ScapeCore.Core.Serialization.Streamers
         protected readonly string _compressedBinName;
         protected readonly RuntimeTypeModel _model;
 
-        protected const string DESERIALIZATION_ERROR_FORMAT = "Deserialization to path {path} failed: {ex}";
-        protected const string SERIALIZATION_ERROR_FORMAT = "Serialization to path {path} failed: {ex}";
+        protected const string DESERIALIZATION_ERROR_FORMAT = "Deserialization to path {0} failed: {1}";
+        protected const string SERIALIZATION_ERROR_FORMAT = "Serialization to path {0} failed: {1}";
+
+
 
         public enum SerializationError
         {
@@ -60,13 +62,13 @@ namespace ScapeCore.Core.Serialization.Streamers
         {
             if (_model == null)
             {
-                Log.Warning(errorFormat, path, "Serialization model is null.");
+                SCLog.Log(ERROR, errorFormat, substitutions: (path, "Serialization model is null."));
                 result = SerializationError.ModelNull;
                 return true;
             }
             if (!_model!.CanSerialize(type))
             {
-                Log.Error(errorFormat, $"Type {type.FullName} can't be serialized.");
+                SCLog.Log(ERROR, errorFormat, substitutions: (path, $"Type {type.FullName} can't be serialized."));
                 result = SerializationError.NotSerializable;
                 return true;
             }
@@ -75,7 +77,7 @@ namespace ScapeCore.Core.Serialization.Streamers
         }
         protected static SerializationError HandleSerializationError(string errorFormat, string path, Exception ex)
         {
-            Log.Error(errorFormat, path, ex.Message);
+            SCLog.Log(ERROR, errorFormat, substitutions: (path, ex.Message));
             SerializationError error = ex switch
             {
                 UnauthorizedAccessException => SerializationError.UnauthorizedAccess,

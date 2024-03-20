@@ -18,23 +18,26 @@
 
 using ProtoBuf.Meta;
 using ScapeCore.Core.Batching.Tools;
-using Serilog;
 using System;
 using System.Linq;
 using System.Reflection;
 
+using static ScapeCore.Traceability.Debug.Debugger;
+using static ScapeCore.Traceability.Logging.LoggingColor;
 
 namespace ScapeCore.Core.Serialization
 {
+    /// <summary>
+    /// Creates a configured model for the serializer and 
+    /// </summary>
+    /// <remarks>
+    /// Inherit from this class to create a simple behaviour that can be added and registered in the engine.
+    /// </remarks>
     public sealed class RuntimeModelFactory
     {
         private const string SCAPE_CORE_NAME = "ScapeCore";
         private const int FIELD_PROTOBUF_INDEX = 1;
         private const int SUBTYPE_PROTOBUF_INDEX = 556;
-        private const string FIELD_ERROR_MESSAGE = "Serialization Manager tried to configure an object/dynamic field named {field} from Type {type}," +
-                    " serializer does not support deeply mutable types, try changing field type to {dmtName}.";
-        private const string PROPERTY_ERROR_MESSAGE = "Serialization Manager tried to configure an object/dynamic property named {property} from Type {type}," +
-                            " serializer does not support deeply mutable types, try changing property type to {dmtName}.";
 
         private RuntimeTypeModel? _model = null;
         public RuntimeTypeModel? Model { get => _model; }
@@ -52,20 +55,20 @@ namespace ScapeCore.Core.Serialization
         {
             if (_model == null)
             {
-                Log.Warning("Serialization Manager can not add a type {t} becouse serialization model is null.", type.FullName);
+                SCLog.Log(WARNING, $"Serialization Manager can not add a type {Yellow}{type.FullName}{Default} because serialization model is null.");
                 return;
             }
             var fieldIndex = FIELD_PROTOBUF_INDEX;
             var metaType = _model.Add(type, false);
             metaType.IgnoreUnknownSubTypes = false;
-            Log.Debug("Type {type} was configured for [de]Serialization...", type.Name);
+            SCLog.Log(DEBUG, $"Type {type.Name} was configured for [de]Serialization...");
             SetTypeFields(metaType, type, ref fieldIndex);
             SetSubType(type, _model);
             if (type == typeof(DeeplyMutableType) || type.BaseType == typeof(DeeplyMutableType)) return;
             SetTypeProperties(metaType, type, ref fieldIndex);
         }
 
-        private RuntimeTypeModel CreateRuntimeModel()
+        private static RuntimeTypeModel CreateRuntimeModel()
         {
             var runtimeModel = RuntimeTypeModel.Create(SCAPE_CORE_NAME);
             runtimeModel.AllowParseableTypes = true;
@@ -78,7 +81,7 @@ namespace ScapeCore.Core.Serialization
         {
             var fieldIndex = FIELD_PROTOBUF_INDEX;
             var metaType = runtimeModel.Add(type, false);
-            Log.Debug("Type {type} was configured for [de]Serialization...", type.Name);
+            SCLog.Log(DEBUG, $"Type {type.Name} was configured for [de]Serialization...");
             if (type.IsEnum) return;
             SetFieldsSubTypesAndProperties(runtimeModel, type, metaType, ref fieldIndex);
         }
@@ -91,7 +94,7 @@ namespace ScapeCore.Core.Serialization
             SetTypeProperties(metaType, type, ref fieldIndex);
         }
 
-        private void SetTypeFields(MetaType metaType, Type type, ref int fieldIndex)
+        private static void SetTypeFields(MetaType metaType, Type type, ref int fieldIndex)
         {
             foreach (var field in type.GetFields())
             {
@@ -99,26 +102,26 @@ namespace ScapeCore.Core.Serialization
                 {
                     if (field.FieldType.Name == typeof(object).Name)
                     {
-                        Log.Warning(FIELD_ERROR_MESSAGE, field.Name, type.Name, typeof(DeeplyMutableType).FullName);
+                        SCLog.Log(WARNING, $"Serialization Manager tried to configure an object/dynamic field named {field.Name} from Type {type.Name}, serializer does not support deeply mutable types, try changing field type to {typeof(DeeplyMutableType).FullName}.");
                         continue;
                     }
                     AddField(metaType, field, type, ref fieldIndex);
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning("Serialization Manager can not determine type of field {property} from {type}.", field.Name, type);
-                    Log.Verbose("{ex}", ex.Message);
+                    SCLog.Log(WARNING, $"Serialization Manager can not determine type of field {field.Name} from {type}.");
+                    SCLog.Log(VERBOSE, $"{ex}", substitutions: ex.Message);
                 }
             }
         }
 
-        private void AddField(MetaType metaType, FieldInfo field, Type type, ref int fieldIndex)
+        private static void AddField(MetaType metaType, FieldInfo field, Type type, ref int fieldIndex)
         {
             metaType.Add(fieldIndex++, field.Name);
-            Log.Verbose("\tField [{i}]{field}[{t}] from Type {type}", fieldIndex - 1, field.Name, field.FieldType, type.Name);
+            SCLog.Log(VERBOSE, $"\tField [{fieldIndex - 1}]{field.Name}[{field.FieldType}] from Type {type.Name}");
         }
 
-        private void SetSubType(Type type, RuntimeTypeModel runtimeModel)
+        private static void SetSubType(Type type, RuntimeTypeModel runtimeModel)
         {
             foreach (var runtimeType in runtimeModel.GetTypes().Cast<MetaType>())
             {
@@ -140,7 +143,7 @@ namespace ScapeCore.Core.Serialization
             return false;
         }
 
-        private void SetTypeProperties(MetaType metaType, Type type, ref int fieldIndex)
+        private static void SetTypeProperties(MetaType metaType, Type type, ref int fieldIndex)
         {
             foreach (var property in type.GetProperties())
             {
@@ -148,23 +151,23 @@ namespace ScapeCore.Core.Serialization
                 {
                     if (property.PropertyType.Name == typeof(object).Name)
                     {
-                        Log.Warning(PROPERTY_ERROR_MESSAGE, property.Name, type.Name, typeof(DeeplyMutableType).FullName);
+                        SCLog.Log(WARNING, $"Serialization Manager tried to configure an object/dynamic field named {property.Name} from Type {type.Name}, serializer does not support deeply mutable types, try changing field type to {typeof(DeeplyMutableType).FullName}.");
                         continue;
                     }
                     AddProperty(metaType, property, type, ref fieldIndex);
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning("Serialization Manager can not determine type of property {property} from {type}.", property.Name, type);
-                    Log.Verbose("{ex}", ex.Message);
+                    SCLog.Log(WARNING, $"Serialization Manager can not determine type of property {property.Name} from {type}.");
+                    SCLog.Log(VERBOSE, ex.Message);
                 }
             }
         }
 
-        private void AddProperty(MetaType metaType, PropertyInfo property, Type type, ref int fieldIndex)
+        private static void AddProperty(MetaType metaType, PropertyInfo property, Type type, ref int fieldIndex)
         {
             metaType.Add(fieldIndex++, property.Name);
-            Log.Verbose("\tProperty [{i}]{property}[{t}] from Type {type}", fieldIndex - 1, property.Name, property.PropertyType, type.Name);
+            SCLog.Log(VERBOSE, $"\tProperty [{fieldIndex - 1}]{property.Name}[{property.PropertyType}] from Type {type.Name}");
         }
 
         #region Change Serialization Model
@@ -178,12 +181,12 @@ namespace ScapeCore.Core.Serialization
         {
             if (model == null)
             {
-                Log.Warning("Cannot change to a null serialization model. Serialization model remains the same.");
+                SCLog.Log(WARNING, "Cannot change to a null serialization model. Serialization model remains the same.");
                 return new() { Error = ChangeModelError.NullModel };
             }
             _model = model;
             _model.CompileInPlace();
-            Log.Debug("Serialization model was succesfully updated.");
+            SCLog.Log(DEBUG, "Serialization model was successfully updated.");
             return new() { Error = ChangeModelError.None };
         }
         #endregion Change Serialization Model
