@@ -21,11 +21,11 @@ using ProtoBuf.Meta;
 using System;
 using System.IO;
 
-using static ScapeCore.Traceability.Debug.Debugger;
+using static ScapeCore.Core.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
-    public sealed class ScapeCoreSerializer : ScapeCoreSeralizationStreamer
+    public sealed class ScapeCoreSerializer : ScapeCoreSeralizationStreamer , IScapeCoreSerializer
     {
         public ScapeCoreSerializer(RuntimeTypeModel model, int gzipBufferSize, string binName, string compressedBinName) :
             base(binName, compressedBinName, model, gzipBufferSize)

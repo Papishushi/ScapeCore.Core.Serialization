@@ -20,7 +20,7 @@ using ProtoBuf.Meta;
 using System;
 using System.IO;
 
-using static ScapeCore.Traceability.Debug.Debugger;
+using static ScapeCore.Core.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
