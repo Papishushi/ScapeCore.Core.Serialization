@@ -18,17 +18,16 @@
  */
 
 using ProtoBuf.Meta;
-using ScapeCore.Core.Batching.Tools;
+using ScapeCore.Core.Tools;
 using ScapeCore.Core.Serialization.Tools;
 using System;
 using System.IO;
 
-using ScapeCore.Traceability.Debug;
-using static ScapeCore.Traceability.Debug.Debugger;
+using static ScapeCore.Core.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization.Streamers
 {
-    public sealed class ScapeCoreDeserializer : ScapeCoreSeralizationStreamer
+    public sealed class ScapeCoreDeserializer : ScapeCoreSeralizationStreamer, IScapeCoreDeserializer
     {
         public ScapeCoreDeserializer(RuntimeTypeModel model, int gzipBufferSize, string binName, string compressedBinName) :
             base(binName, compressedBinName, model, gzipBufferSize)

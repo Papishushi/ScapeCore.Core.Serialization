@@ -17,12 +17,12 @@
  */
 
 using ProtoBuf.Meta;
-using ScapeCore.Core.Batching.Tools;
+using ScapeCore.Core.Tools;
 using System;
 using System.Linq;
 using System.Reflection;
 
-using static ScapeCore.Traceability.Debug.Debugger;
+using static ScapeCore.Core.Debug.Debugger;
 using static ScapeCore.Traceability.Logging.LoggingColor;
 
 namespace ScapeCore.Core.Serialization
@@ -55,7 +55,7 @@ namespace ScapeCore.Core.Serialization
         {
             if (_model == null)
             {
-                SCLog.Log(WARNING, $"Serialization Manager can not add a type {Yellow}{type.FullName}{Default} because serialization model is null.");
+                SCLog.Log(WARNING, $"Serialization Manager can not add a type {Yellow}{type.FullName}{Traceability.Logging.LoggingColor.Default} because serialization model is null.");
                 return;
             }
             var fieldIndex = FIELD_PROTOBUF_INDEX;
@@ -174,7 +174,8 @@ namespace ScapeCore.Core.Serialization
         public enum ChangeModelError
         {
             None,
-            NullModel
+            NullModel,
+            InvalidModelDependencies
         }
         public readonly record struct ChangeModelOutput(ChangeModelError Error);
         public ChangeModelOutput ChangeModel(RuntimeTypeModel model)

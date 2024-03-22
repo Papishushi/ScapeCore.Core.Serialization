@@ -12,44 +12,49 @@
  * file 'LICENSE.txt', which is part of this source code package.
  * 
  * SerializationManager.cs
- * Provides static methods for serializing and deserializing
- * objects using ProtoBuf with optional compression.
+ * Provides methods for serializing and deserializing data.
  */
 
 using Baksteen.Extensions.DeepCopy;
+using ProtoBuf;
 using ProtoBuf.Meta;
 using ScapeCore.Core.Serialization.Streamers;
+using ScapeCore.Core.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Xml.Linq;
+
 using static ScapeCore.Core.Serialization.RuntimeModelFactory;
+using static ScapeCore.Core.Debug.Debugger;
 
 namespace ScapeCore.Core.Serialization
 {
-    public static class SerializationManager
+    public class SerializationManager : IScapeCoreManager
     {
-        private const string PROTOBUFER_COMPRESSED_BINARY = ".pb.bin.gz";
-        private const string PROTOBUFFER_BINARY = ".pb.bin";
+        private static SerializationManager? _defaultManager = null;
+        public static SerializationManager? Default { get => _defaultManager; set => _defaultManager = value; }
 
-        private static int _bitIterations = 1024;
-        private static int _gzipBufferSize = (Environment.Is64BitOperatingSystem ? 64 : 32) * _bitIterations;
+        private RuntimeModelFactory? _modelFactory = null;
+        private IScapeCoreSerializer? _serializer = null;
+        private IScapeCoreDeserializer? _deserializer = null;
+        private readonly List<IScapeCoreService?> _services = [];
 
-        private static RuntimeModelFactory? _modelFactory = null;
-        private static ScapeCoreSerializer? _serializer = null;
-        private static ScapeCoreDeserializer? _deserializer = null;
+        private readonly Type[] _buildInTypes;
 
-        private readonly static Type[] _buildInTypes;
-        internal static TypeModel? Model { get => _modelFactory?.Model; }
+        internal TypeModel? Model { get => _modelFactory?.Model; }
 
-        public static RuntimeTypeModel? GetRuntimeClone() => _modelFactory?.Model?.DeepCopy();
-        public static ScapeCoreSerializer? Serializer { get => _serializer; }
-        public static ScapeCoreDeserializer? Deserializer { get => _deserializer; }
-        public static int CompressionBufferSize { get => _gzipBufferSize; }
-        public static int CompressionBufferSizeIterations { get => _bitIterations; set => _bitIterations = value; }
+        public RuntimeTypeModel? GetRuntimeClone() => _modelFactory?.Model?.DeepCopy();
+        public RuntimeTypeModel? GetRuntime() => _modelFactory?.Model;
 
-        static SerializationManager()
+        public IScapeCoreSerializer? Serializer => _serializer; 
+        public IScapeCoreDeserializer? Deserializer => _deserializer;
+
+        List<IScapeCoreService?> IScapeCoreManager.Services { get => _services; }
+
+        public SerializationManager()
         {
             var assembly = typeof(SerializationManager).Assembly;
             var path = Path.Combine(assembly.Location[..assembly.Location.LastIndexOf('\\')], @"BuildinTypes.xml") ??
@@ -68,34 +73,63 @@ namespace ScapeCore.Core.Serialization
 
             _buildInTypes = [.. l];
             _modelFactory = new RuntimeModelFactory(_buildInTypes);
-            ConfigureSerializers(_modelFactory.Model!);
+            _defaultManager ??= this;
         }
 
-        private static string[] ParseXmlToTypesArray(string xmlFilePath)
+        bool IScapeCoreManager.InjectDependencies(params IScapeCoreService[] services)
+        {
+            if (services.Length != 2)
+                return false;
+
+            if (services[0] is IScapeCoreSerializer && services[1] is IScapeCoreDeserializer)
+            {
+                _services.Clear();
+                _services.AddRange(services);
+                _serializer = services[0] as IScapeCoreSerializer;
+                _deserializer = services[1] as IScapeCoreDeserializer;
+            }
+            else return false;
+
+            return true;
+        }
+
+        public void InjectDependencies(IScapeCoreSerializer serializer, IScapeCoreDeserializer deserializer)
+        {
+            if (!(this as IScapeCoreManager).InjectDependencies([serializer, deserializer]))
+                throw new ArgumentException($"The dependencies injected to this {nameof(SerializationManager)} are not valid. Check if they are correct and try again.");
+            else
+                SCLog.Log(DEBUG, $"Serializer and deserializer dependencies were successfully injected.");
+        }
+
+
+        private string[] ParseXmlToTypesArray(string xmlFilePath)
         {
             var xmlDoc = XDocument.Load(xmlFilePath);
             XNamespace ns = "http://schemas.microsoft.com/powershell/2004/04";
-            if (xmlDoc == null || xmlDoc!.Root == null) return Array.Empty<string>();
+            if (xmlDoc == null || xmlDoc!.Root == null) return [];
             var types = xmlDoc.Root.Elements(ns + "Type").Select(type => type.Value).ToArray();
             return types;
         }
 
-        private static void ConfigureSerializers(RuntimeTypeModel runtimeModel)
-        {
-            _serializer = new(runtimeModel, _gzipBufferSize, PROTOBUFFER_BINARY, PROTOBUFER_COMPRESSED_BINARY);
-            _deserializer = new(runtimeModel, _gzipBufferSize, PROTOBUFFER_BINARY, PROTOBUFER_COMPRESSED_BINARY);
-        }
+        public void AddType(Type type) => _modelFactory?.AddType(type);
 
-        public static void AddType(Type type) => _modelFactory?.AddType(type);
-
-        public static ChangeModelOutput ChangeModel(RuntimeTypeModel model)
+        public ChangeModelOutput ChangeModel(RuntimeTypeModel model, IScapeCoreSerializer serializer, IScapeCoreDeserializer deserializer)
         {
+            try
+            {
+                InjectDependencies(serializer, deserializer);
+            }
+            catch (ArgumentException ex)
+            {
+                SCLog.Log(ERROR, ex.Message);
+                return new ChangeModelOutput(ChangeModelError.InvalidModelDependencies);
+            }
+
             var output = (_modelFactory ??= new(_buildInTypes)).ChangeModel(model);
-            ConfigureSerializers(model);
+
             return output;
         }
 
-        public static void ResetFactory() => _modelFactory = new RuntimeModelFactory(_buildInTypes);
-
+        public void ResetFactory() => _modelFactory = new RuntimeModelFactory(_buildInTypes);
     }
 }
