@@ -101,6 +101,37 @@ namespace ScapeCore.Core.Serialization
                 SCLog.Log(DEBUG, $"Serializer and deserializer dependencies were successfully injected.");
         }
 
+        private bool ExtractDependenciesLocal(params IScapeCoreService[] services)
+        {
+            if (services.Length <= 0 || services.Length > 2) return false;
+
+            foreach (var service in services)
+            {
+                if (service is IScapeCoreSerializer)
+                {
+                    _services.Remove(_serializer);
+                    _serializer = null;
+                }
+                else if (service is IScapeCoreDeserializer)
+                {
+                    _services.Remove(_deserializer);
+                    _deserializer = null;
+                }
+                else return false;
+            }
+            return true;
+        }
+
+        bool IScapeCoreManager.ExtractDependencies(params IScapeCoreService[] services)
+        {
+            var result = services.Length <= 0 ? ExtractDependenciesLocal([.. _services]) :
+                                                ExtractDependenciesLocal(services);
+            if (!result)
+                throw new ArgumentException($"The dependencies extracted from this {nameof(SerializationManager)} are not valid. Check if they are correct and try again.");
+            else
+                SCLog.Log(DEBUG, $"Dependencies were succesfully extracted from {nameof(SerializationManager)}.");
+            return result;
+        }
 
         private string[] ParseXmlToTypesArray(string xmlFilePath)
         {
