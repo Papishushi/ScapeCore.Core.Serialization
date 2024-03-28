@@ -62,13 +62,13 @@ namespace ScapeCore.Core.Serialization.Streamers
         {
             if (_model == null)
             {
-                SCLog.Log(ERROR, errorFormat, substitutions: (path, "Serialization model is null."));
+                SCLog?.Log(ERROR, errorFormat, substitutions: (path, "Serialization model is null."));
                 result = SerializationError.ModelNull;
                 return true;
             }
             if (!_model!.CanSerialize(type))
             {
-                SCLog.Log(ERROR, errorFormat, substitutions: (path, $"Type {type.FullName} can't be serialized."));
+                SCLog?.Log(ERROR, errorFormat, substitutions: (path, $"Type {type.FullName} can't be serialized."));
                 result = SerializationError.NotSerializable;
                 return true;
             }
@@ -77,7 +77,7 @@ namespace ScapeCore.Core.Serialization.Streamers
         }
         protected static SerializationError HandleSerializationError(string errorFormat, string path, Exception ex)
         {
-            SCLog.Log(ERROR, errorFormat, substitutions: (path, ex.Message));
+            SCLog?.Log(ERROR, errorFormat, substitutions: (path, ex.Message));
             SerializationError error = ex switch
             {
                 UnauthorizedAccessException => SerializationError.UnauthorizedAccess,

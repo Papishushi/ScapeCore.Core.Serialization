@@ -27,6 +27,11 @@ namespace ScapeCore.Core.Serialization.Streamers
 {
     public sealed class ScapeCoreSerializer : ScapeCoreSeralizationStreamer , IScapeCoreSerializer
     {
+        public string Name { get; } = "ScapeCoreSerializer";
+
+        private readonly Guid _id = Guid.NewGuid();
+        public Guid Id => _id;
+
         public ScapeCoreSerializer(RuntimeTypeModel model, int gzipBufferSize, string binName, string compressedBinName) :
             base(binName, compressedBinName, model, gzipBufferSize)
         { }

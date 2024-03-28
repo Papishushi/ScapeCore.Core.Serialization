@@ -29,6 +29,7 @@ using System.Xml.Linq;
 
 using static ScapeCore.Core.Serialization.RuntimeModelFactory;
 using static ScapeCore.Core.Debug.Debugger;
+using ScapeCore.Core.SceneManagement;
 
 namespace ScapeCore.Core.Serialization
 {
@@ -78,27 +79,40 @@ namespace ScapeCore.Core.Serialization
 
         bool IScapeCoreManager.InjectDependencies(params IScapeCoreService[] services)
         {
-            if (services.Length != 2)
-                return false;
+            if (services.Length <= 0 || services.Length > 2) return false;
 
-            if (services[0] is IScapeCoreSerializer && services[1] is IScapeCoreDeserializer)
+            foreach (var service in services)
             {
-                _services.Clear();
-                _services.AddRange(services);
-                _serializer = services[0] as IScapeCoreSerializer;
-                _deserializer = services[1] as IScapeCoreDeserializer;
+                if (service is IScapeCoreSerializer serializer)
+                {
+                    if (_serializer != null) return false;
+                    _services.Add(serializer);
+                    _serializer = serializer;
+                }
+                else if (service is IScapeCoreDeserializer deserializer)
+                {
+                    if (_deserializer != null) return false;
+                    _services.Add(deserializer);
+                    _deserializer = deserializer;
+                }
+                else return false;
             }
-            else return false;
 
             return true;
         }
 
-        public void InjectDependencies(IScapeCoreSerializer serializer, IScapeCoreDeserializer deserializer)
+        public void InjectDependencies(IScapeCoreSerializer? serializer = null, IScapeCoreDeserializer? deserializer = null)
         {
+            var strs = new List<string>();
+            if (serializer != null)
+                strs.Add($"\"{serializer.Name}\"");
+            if (deserializer != null)
+                strs.Add($"\"{deserializer.Name}\"");
             if (!(this as IScapeCoreManager).InjectDependencies([serializer, deserializer]))
-                throw new ArgumentException($"The dependencies injected to this {nameof(SerializationManager)} are not valid. Check if they are correct and try again.");
+                throw new ArgumentException($"The serializers injected to this {nameof(SerializationManager)} are not valid. Check if they are correct and try again.");
             else
-                SCLog.Log(DEBUG, $"Serializer and deserializer dependencies were successfully injected.");
+                SCLog?.Log(DEBUG, strs.Count == 1 ? $"{strs[0]} was succesfully injected to {nameof(SerializationManager)}." :
+                                                    $"{string.Join(", ", strs)} were succesfully injected to {nameof(SerializationManager)}.");
         }
 
         private bool ExtractDependenciesLocal(params IScapeCoreService[] services)
@@ -107,15 +121,15 @@ namespace ScapeCore.Core.Serialization
 
             foreach (var service in services)
             {
-                if (service is IScapeCoreSerializer)
+                if (service is IScapeCoreSerializer serializer)
                 {
-                    _services.Remove(_serializer);
-                    _serializer = null;
+                    if (_services.Remove(serializer)) _serializer = null;
+                    else return false;
                 }
-                else if (service is IScapeCoreDeserializer)
+                else if (service is IScapeCoreDeserializer deserializer)
                 {
-                    _services.Remove(_deserializer);
-                    _deserializer = null;
+                    if (_services.Remove(deserializer)) _deserializer = null;
+                    else return false;
                 }
                 else return false;
             }
@@ -124,12 +138,16 @@ namespace ScapeCore.Core.Serialization
 
         bool IScapeCoreManager.ExtractDependencies(params IScapeCoreService[] services)
         {
-            var result = services.Length <= 0 ? ExtractDependenciesLocal([.. _services]) :
-                                                ExtractDependenciesLocal(services);
-            if (!result)
-                throw new ArgumentException($"The dependencies extracted from this {nameof(SerializationManager)} are not valid. Check if they are correct and try again.");
+            var servicesToExtract = services.Length <= 0 ? [.. _services] : services;
+            var result = ExtractDependenciesLocal(servicesToExtract);
+            var strs = new List<string>();
+            foreach (var service in servicesToExtract)
+                strs.Add($"\"{service.Name}\"");
+            if (result == false)
+                throw new ArgumentException($"The serializers extracted from this {nameof(SerializationManager)} are not valid. Check if they are correct and try again. Alternatively dependencies could be null.");
             else
-                SCLog.Log(DEBUG, $"Dependencies were succesfully extracted from {nameof(SerializationManager)}.");
+                SCLog?.Log(DEBUG, strs.Count == 1 ? $"{strs[0]} was succesfully extracted from {nameof(SerializationManager)}." :
+                                                    $"{string.Join(", ", strs)} were succesfully extracted from {nameof(SerializationManager)}.");
             return result;
         }
 
